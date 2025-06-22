@@ -7,6 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* 所有CSS保持不变 */
         * {
             margin: 0;
             padding: 0;
@@ -547,7 +548,7 @@
         let pageNum = 1;
         let pageRendering = false;
         let pageNumPending = null;
-        let scale = 1.7; // 初始放大比例
+        let scale = 1.0; // 修改1：初始缩放比例设为100% (原为1.7)
         
         // 显示状态消息
         function showStatus(message) {
@@ -631,18 +632,25 @@
                 
                 // 获取PDF页面原始尺寸
                 const viewport = page.getViewport({ scale: 1 });
-                const pdfRatio = viewport.width / viewport.height;
                 
-                // 计算最佳高度以保持比例
-                const targetWidth = Math.min(containerWidth, viewport.width * scale);
-                const targetHeight = targetWidth / pdfRatio;
+                // 修改2：添加自适应缩放计算
+                // 计算最佳缩放比例（宽度适应容器）
+                let newScale = (containerWidth - 40) / viewport.width;
                 
-                // 设置画布大小
-                canvas.height = targetHeight;
-                canvas.width = targetWidth;
+                // 设置缩放范围限制 (50%-250%)
+                newScale = Math.max(0.5, Math.min(newScale, 2.5));
+                
+                // 仅当scale未手动调整时使用自适应比例
+                if (scale === 1.0) {
+                    scale = newScale;
+                }
                 
                 // 使用计算出的缩放比例
                 const renderViewport = page.getViewport({ scale: scale });
+                
+                // 设置画布大小
+                canvas.height = renderViewport.height;
+                canvas.width = renderViewport.width;
                 
                 // 设置渲染上下文
                 const renderContext = {
@@ -789,6 +797,9 @@
             clickOverlay.style.display = 'flex';
             pdfFallback.style.display = 'none';
             document.querySelector('.page-info').style.display = 'flex';
+            
+            // 重置缩放比例为100%
+            scale = 1.0;
             
             // 加载新PDF
             pageNum = 1;
